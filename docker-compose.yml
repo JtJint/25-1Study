@@ -1,0 +1,27 @@
+version: "3.8"
+services:
+  mysql :
+    image : mysql:8
+    container_name : mysql
+    environment : 
+      MYSQL_ROOT_PASSWORD : root
+      MYSQL_DATABASE : pokeraid
+      MYSQL_USER : user
+      MYSQL_PASSWORD : secret123
+    ports : 
+      - "3306:3306"
+    volumes : 
+      - mysql-data:/var/lib/mysql
+      #mysql은 데이터를 파일로 만들어서 저장을 해놨다가 인ㅔㄷㄱ스로 하고 만드는 건데
+      #이것을 어디다가 저장을 할지 path를 만드는것
+      #but redis는 없어 왜 없을까? 생각 #메모리에 저장 되기 때문에 빠른 읽기 쓰기 연산 가능함.
+      #이파일 마지막에도 volumes도 또 있는데 이 volumes랑 밖의 volumes의 차이는?
+    
+  redis : 
+    image: redis:latest
+    container_name : redis
+    ports :
+      - "6379:6379"
+
+volumes :
+  mysql-data :
