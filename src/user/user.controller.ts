@@ -1,16 +1,55 @@
-import { Controller, Get, Post } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Req,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { UserService } from './user.service';
+
+import { Request } from 'express';
+import { v4 as uuidv4, v4 } from 'uuid';
+import { RedisService } from 'src/redis/redis.service';
+import { LoginReqDto, LoginResDto, ResitrationReqDto } from './user.dto';
 
 @Controller('users')
 export class UserController {
-  constructor() {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly redisService: RedisService,
+  ) {}
 
-  @Post('regoster')
-  etHello() {
-
+  @Post('register')
+  async register(@Body() dto: ResitrationReqDto) {
+    return this.userService.register(dto.id, dto.password);
   }
 
   @Post('login')
-  getHello() {
+  async login(@Body() dto: LoginReqDto): Promise<LoginResDto> {
+    const user = await this.userService.validateUser(
+      dto.id,
+      dto.password,
+    );
+    if (!user) throw new UnauthorizedException('Invalid credentials');
+
+    const existingSessionId = await this.redisService.getSessionIdByUserId(
+      user.seq,
+    );
+    if (existingSessionId) {
+      await this.redisService.deleteSession(existingSessionId);
+    }
+
+    const sessionId = uuidv4();
+    await this.redisService.setSession(sessionId, {
+      id: user.id,
+      seq : user.seq
+    });
+
+    await this.redisService.setUserSessionMap(user.seq, sessionId);
+    return {
+      sessionId : sessionId,
+      seq : user.seq,
+      id : user.id,
+    };
   }
 }
